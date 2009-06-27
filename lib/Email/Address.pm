@@ -135,12 +135,12 @@ following comment.
 
 =cut
 
-our $addr_spec  = qr/$local_part\@$domain/;
+our $addr_spec  = qr/(?:$local_part\@$domain)|$local_part/;
 our $angle_addr = qr/$cfws*<$addr_spec>$cfws*/;
 our $name_addr  = qr/$display_name?$angle_addr/;
 our $mailbox    = qr/(?:$name_addr|$addr_spec)/;
 
-our $addr_spec_CRE  = qr/($local_part)\@($domain)/;
+our $addr_spec_CRE  = qr/(?:($local_part)\@($domain))|($local_part)/;
 our $angle_addr_CRE = qr/$cfws*<$addr_spec_CRE>$cfws*/;
 our $name_addr_CRE  = qr/($display_name)?$angle_addr_CRE/;
 
@@ -209,6 +209,8 @@ sub parse {
     my ($class, $line) = @_;
     return unless $line;
 
+    print STDERR "# $addr_spec\n";
+
     $line =~ s/[ \t]+/ /g if $COLLAPSE_SPACES;
 
     if (my @cached = $class->__get_cached_parse($line)) {
@@ -260,6 +262,18 @@ sub parse {
 
     $class->__cache_parse($line, \@addrs);
     return @addrs;
+}
+
+sub parse_allow_domainless {
+    my $self = shift;
+    local $addr_spec  = qr/(?:$local_part\@$domain)|$local_part|foo/;
+    local $angle_addr = qr/$cfws*<$addr_spec>$cfws*/;
+    local $mailbox    = qr/(?:$name_addr|$addr_spec)/;
+
+    local $addr_spec_CRE  = qr/(?:($local_part)\@($domain))|$local_part/;
+    local $angle_addr_CRE = qr/$cfws*<$addr_spec_CRE>$cfws*/;
+    return $self->parse(@_);
+
 }
 
 =pod
